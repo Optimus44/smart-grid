@@ -1,5 +1,11 @@
 # Smart Energy Grid Monitoring — Local Dev
 
+## Group Members 
+1. Wayne Rubangisa 
+2. Lydia Kigero Mbabazi
+3. Jimmy Irakiza
+4. Dany Nkurunziza
+
 This repository scaffolds a local environment for the Smart Energy Grid Monitoring System project.
 
 Quick start
