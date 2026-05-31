@@ -1,0 +1,112 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": null,
+    "title": "Smart Grid Dashboard",
+    "timezone": "browser",
+    "schemaVersion": 30,
+    "version": 1,
+    "refresh": "10s",
+    "time": { "from": "now-30d", "to": "now" },
+    "panels": [
+      {
+        "id": 1,
+        "type": "timeseries",
+        "title": "Last-hour meter readings",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "uid": "P40AE60E18F02DE32", "type": "grafana-postgresql-datasource" },
+            "rawSql": "SELECT timestamp AS \"time\", power AS value, meter_id FROM energy_readings WHERE $__timeFilter(timestamp) AND ('$meter_id' <> '' AND meter_id = '$meter_id')\nUNION ALL\nSELECT time_bucket('15 minutes', timestamp) AS \"time\", AVG(power) AS value, NULL::text AS meter_id FROM energy_readings WHERE $__timeFilter(timestamp) AND ('$meter_id' = '') GROUP BY 1\nORDER BY 1;",
+            "format": "time_series"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Today vs Yesterday (total energy)",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 4 },
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "uid": "P40AE60E18F02DE32", "type": "grafana-postgresql-datasource" },
+            "rawSql": "SELECT DATE_TRUNC('day', timestamp) AS \"time\", SUM(energy) AS value FROM energy_readings WHERE $__timeFilter(timestamp) GROUP BY DATE_TRUNC('day', timestamp) ORDER BY DATE_TRUNC('day', timestamp);",
+            "format": "time_series"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "type": "timeseries",
+        "title": "Weekly trend (avg power, last 28 days)",
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "uid": "P40AE60E18F02DE32", "type": "grafana-postgresql-datasource" },
+            "rawSql": "SELECT time_bucket('1 day', timestamp) AS \"time\", AVG(power) AS value FROM energy_readings WHERE $__timeFilter(timestamp) GROUP BY time_bucket('1 day', timestamp) ORDER BY 1;",
+            "format": "time_series"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "type": "table",
+        "title": "Monthly energy by region",
+        "gridPos": { "x": 12, "y": 4, "w": 12, "h": 12 },
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "uid": "P40AE60E18F02DE32", "type": "grafana-postgresql-datasource" },
+            "rawSql": "SELECT SUBSTRING(meter_id FROM 1 FOR 1) AS region, DATE_TRUNC('month', timestamp) AS month, SUM(energy) AS total_energy FROM energy_readings WHERE $__timeFilter(timestamp) GROUP BY region, month ORDER BY month, region;",
+            "format": "table"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "type": "table",
+        "title": "Hypertable storage & chunk stats",
+        "gridPos": { "x": 0, "y": 16, "w": 24, "h": 6 },
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "uid": "P40AE60E18F02DE32", "type": "grafana-postgresql-datasource" },
+            "rawSql": "SELECT h.hypertable_name, pg_size_pretty(hypertable_size(format('%I', h.hypertable_name)::regclass)) AS size, c.chunk_count FROM (SELECT hypertable_name FROM timescaledb_information.hypertables) h LEFT JOIN (SELECT hypertable_name, COUNT(*) AS chunk_count FROM timescaledb_information.chunks GROUP BY hypertable_name) c USING (hypertable_name);",
+            "format": "table"
+          }
+        ]
+      }
+      ,
+      {
+        "id": 6,
+        "type": "table",
+        "title": "Performance: avg execution (ms) by query",
+        "gridPos": { "x": 12, "y": 16, "w": 12, "h": 6 },
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "uid": "P40AE60E18F02DE32", "type": "grafana-postgresql-datasource" },
+            "rawSql": "SELECT query_id, AVG(execution_ms) AS avg_ms, MIN(execution_ms) AS min_ms, MAX(execution_ms) AS max_ms FROM bench.continuous_aggregates GROUP BY query_id ORDER BY avg_ms DESC;",
+            "format": "table"
+          }
+        ]
+      }
+    ],
+        "templating": {
+      "list": [
+        {
+          "name": "meter_id",
+          "type": "textbox",
+          "label": "Meter ID (empty = all)",
+          "query": "",
+          "hide": 0,
+          "current": { "text": "1000000932", "value": "1000000932" }
+        }
+      ]
+    }
+  },
+  "overwrite": true
+}
